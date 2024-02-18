@@ -1,22 +1,19 @@
 #!/usr/bin/python3
 """ Console Module """
 import cmd
-from datetime import datetime
-import uuid
-from os import getenv
-import shlex
 import sys
-from models.engine.db_storage import DBStorage
-from models.engine.file_storage import FileStorage
 from models.base_model import BaseModel
-from models import storage
-# from models.__init__ import storage
+from models.__init__ import storage
 from models.user import User
 from models.place import Place
 from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+from datetime import datetime
+from os import getenv
+import uuid
+import re
 
 
 class HBNBCommand(cmd.Cmd):
@@ -117,83 +114,68 @@ class HBNBCommand(cmd.Cmd):
         print("Exits the program without formatting\n")
 
     def emptyline(self):
-        """ Overrides the emptyline method of CMD """
+        """Overrides the default behavior of emptyline in Cmd."""
         pass
 
     def do_create(self, args):
-        """ Create an object of any class"""
-        if not args:
-            print("** class name missing **")
-            return
-        arguments = shlex.split(args)
-        class_name = arguments[0]
+        """Create an object of any class"""
+        ignored_attrs = ('id', 'created_at', 'updated_at', '__class__')
+        class_nm = ''
+        name_pattern = r'(?P<name>(?:[a-zA-Z]|_)(?:[a-zA-Z]|\d|_)*)'
+        class_match = re.match(name_pattern, args)
+        obj.kwargs = {}
 
-        try:
-            if class_name not in HBNBCommand.classes:
-                print("** class doesn't exist **")
-                return
+        if class_match != None:
+            class_nm = class_match.grp('name')
+            prms_str = args[len(class_name):].strip()
+            prms = prms_strs.split(' ')
+            prms_pattern = r'{}=({}|{}|{})'.format(nm_pattern,
+                r'(?P<t_str>"([^"]|\")*")',
+                r'(?P<t_float>[-+]?\d+\.\d+)',
+                r'(?P<t_int>[-+]?\d+)'
+            )
 
-            pairs = arguments[1:]
-            #new_instance = HBNBCommand.classes[class_name]()
-            obj_kwargs = {}
-            for pair in pairs:
-                key, value = pair.split("=")
-                value = value.replace('_', ' ')
+            for prm in prms:
+                prm_match = re.fullmatch(prms_pattern, prm)
+                if prm_match != None:
+                    key_name = prm_match.group('name')
+                    type_key = next((k, v) for k, v in prm_match.groupdict().items() if v is not None)
+                    value = prm_match.group(type_key)
+                    obj_kwargs[key_name] = self.convert_value(value, type_key)
 
-                try:
-                    obj_kwargs[key] = eval(value)
-                    #setattr(new_instance, key, eval(value))
-                except (SyntaxError, NameError):
-                    obj_kwargs[key] = value
-                    #setattr(new_instance, key, value)
+                else:
+                    class_name = args
+                if not class_name:
+                    print("** class name missing **")
+                    return
+                if getenv('HBNB_TYPE_STORAGE') == 'db':
+                    if not hasattr(obj_kwargs, 'id'):
+                        obj_kwargs['id'] = str(uuid.uuid4())
+                    if not hasattr(obj_kwargs, 'created_at'):
+                        obj_kwargs['created_at'] = str(datetime.now().isoformat())
+                    if not hasattr(obj_kwargs, 'updated_at'):
+                        obj_kwargs['updated_at'] = str(datetime.now().isoformat())
+                        
+                    new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
+                    new_instance.save()
+                    print(new_instance.id)
 
-            if getenv('HBNB_TYPE_STORAGE') == 'db':
-                if 'id' not in obj_kwargs:
-                    obj_kwargs['id'] = str(uuid.uuid4())
-                if 'created_at' not in obj_kwargs:
-                    obj_kwargs['created_at'] = str(datetime.now().isoformat())
-                if 'updated_at' not in obj_kwargs:
-                    obj_kwargs['updated_at'] = str(datetime.now().isoformat())
+                else:
+                    new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
+                    new_instance.save()
+                    print(new_instance.id)
 
-                new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
-                new_instance.save()
-                print(new_instance.id)
-            else:
-                new_instance = HBNBCommand.classes[class_name]()
-                for key, value in obj_kwargs.items():
-                    setattr(new_instance, key, value)
-                new_instance.save()
-                print(new_instance.id)
+def convert_value(self, value, type_key):
+    """Convert value based on the specified type."""
+    if type_key == 't_str':
+        return value[1:-1].replace('_', ' ')
+    elif type_key == 't_float':
+        return float(value)
+    elif type_key == 't_int':
+        return int(value)
+    else:
+        return value
 
-        except Exception as e:
-            print(f"Error: {e}")
-
-        '''
-        try:
-            if class_name not in HBNBCommand.classes:
-                print("** class doesn't exist **")
-                return
-            new_instance = self.classes[class_name]()
-            for i in arguments[1:]:
-                key, value = shlex.split(i, posix=False).split("=")
-        
-                #if not hasattr(new_instance, key):
-                   # print ("** attribute does not exist **")
-                   # return
-                #elif hasattr(new_instance, key):
-                    #if value[0] == '"' and value[-1] == '"':
-                     #   value = value[1:-1].replace('_', ' ')
-                    #if '.' in value:
-                     #   value = float(value)
-                    #elif value.isdigit():
-                     #   value = int(value) 
-                setattr(new_instance, key, value)
-        except Exception:
-            pass
-        new_instance.save()
-        print(new_instance.id)
-        storage.save()
-        '''
     def help_create(self):
         """ Help information for the create method """
         print("Creates a class of any type")
@@ -223,7 +205,7 @@ class HBNBCommand(cmd.Cmd):
 
         key = c_name + "." + c_id
         try:
-            print(storage._FileStorage__objects[key])
+            print(storage.all()[key])
         except KeyError:
             print("** no instance found **")
 
@@ -267,8 +249,6 @@ class HBNBCommand(cmd.Cmd):
 
     def do_all(self, args):
         """ Shows all objects, or all objects of a class"""
-        from models.engine.db_storage import DBStorage
-        from models.engine.file_storage import FileStorage
         print_list = []
 
         if args:
@@ -283,7 +263,7 @@ class HBNBCommand(cmd.Cmd):
         else:
             for cls_name in HBNBCommand.classes:
                 objects = storage.all(HBNBCommand.classes[cls_name])
-                for k,v in objects.items():
+                for k, v in objects.items():
                     print_list.append(str(v))
 
         print(print_list)
@@ -392,6 +372,7 @@ class HBNBCommand(cmd.Cmd):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
