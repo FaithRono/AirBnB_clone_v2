@@ -2,6 +2,7 @@
 """ Console Module """
 import cmd
 import sys
+import ast
 from models.base_model import BaseModel
 from models.__init__ import storage
 from models.user import User
@@ -161,9 +162,12 @@ class HBNBCommand(cmd.Cmd):
                     print(new_instance.id)
 
                 else:
-                    new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
-                    new_instance.save()
-                    print(new_instance.id)
+                     new_instance = HBNBCommand.classes[class_name]()
+                     for key, value in obj_kwargs.items():
+                         if key not in ignored_attrs:
+                             setattr(new_instance, key, value)
+                     new_instance.save()
+                     print(new_instance.id)
 
 def convert_value(self, value, type_key):
     """Convert value based on the specified type."""
