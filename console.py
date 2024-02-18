@@ -10,6 +10,10 @@ from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+from datetime import datetime
+from os import getenv
+import uuid
+import re
 
 
 class HBNBCommand(cmd.Cmd):
@@ -73,7 +77,7 @@ class HBNBCommand(cmd.Cmd):
                 pline = pline[2].strip()  # pline is now str
                 if pline:
                     # check for *args or **kwargs
-                    if pline[0] is '{' and pline[-1] is'}'\
+                    if pline[0] == '{' and pline[-1] == '}'\
                             and type(eval(pline)) is dict:
                         _args = pline
                     else:
@@ -110,21 +114,67 @@ class HBNBCommand(cmd.Cmd):
         print("Exits the program without formatting\n")
 
     def emptyline(self):
-        """ Overrides the emptyline method of CMD """
+        """Overrides the default behavior of emptyline in Cmd."""
         pass
 
     def do_create(self, args):
-        """ Create an object of any class"""
-        if not args:
-            print("** class name missing **")
-            return
-        elif args not in HBNBCommand.classes:
-            print("** class doesn't exist **")
-            return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
-        print(new_instance.id)
-        storage.save()
+        """Create an object of any class"""
+        ignored_attrs = ('id', 'created_at', 'updated_at', '__class__')
+        class_nm = ''
+        name_pattern = r'(?P<name>(?:[a-zA-Z]|_)(?:[a-zA-Z]|\d|_)*)'
+        class_match = re.match(name_pattern, args)
+        obj.kwargs = {}
+
+        if class_match != None:
+            class_nm = class_match.grp('name')
+            prms_str = args[len(class_name):].strip()
+            prms = prms_strs.split(' ')
+            prms_pattern = r'{}=({}|{}|{})'.format(nm_pattern,
+                r'(?P<t_str>"([^"]|\")*")',
+                r'(?P<t_float>[-+]?\d+\.\d+)',
+                r'(?P<t_int>[-+]?\d+)'
+            )
+
+            for prm in prms:
+                prm_match = re.fullmatch(prms_pattern, prm)
+                if prm_match != None:
+                    key_name = prm_match.group('name')
+                    type_key = next((k, v) for k, v in prm_match.groupdict().items() if v is not None)
+                    value = prm_match.group(type_key)
+                    obj_kwargs[key_name] = self.convert_value(value, type_key)
+
+                else:
+                    class_name = args
+                if not class_name:
+                    print("** class name missing **")
+                    return
+                if getenv('HBNB_TYPE_STORAGE') == 'db':
+                    if not hasattr(obj_kwargs, 'id'):
+                        obj_kwargs['id'] = str(uuid.uuid4())
+                    if not hasattr(obj_kwargs, 'created_at'):
+                        obj_kwargs['created_at'] = str(datetime.now().isoformat())
+                    if not hasattr(obj_kwargs, 'updated_at'):
+                        obj_kwargs['updated_at'] = str(datetime.now().isoformat())
+                        
+                    new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
+                    new_instance.save()
+                    print(new_instance.id)
+
+                else:
+                    new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
+                    new_instance.save()
+                    print(new_instance.id)
+
+def convert_value(self, value, type_key):
+    """Convert value based on the specified type."""
+    if type_key == 't_str':
+        return value[1:-1].replace('_', ' ')
+    elif type_key == 't_float':
+        return float(value)
+    elif type_key == 't_int':
+        return int(value)
+    else:
+        return value
 
     def help_create(self):
         """ Help information for the create method """
@@ -155,7 +205,7 @@ class HBNBCommand(cmd.Cmd):
 
         key = c_name + "." + c_id
         try:
-            print(storage._FileStorage__objects[key])
+            print(storage.all()[key])
         except KeyError:
             print("** no instance found **")
 
@@ -206,12 +256,15 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage._FileStorage__objects.items():
+            objects = storage.all(HBNBCommand.classes[args])
+            for k, v in objects.items():
                 if k.split('.')[0] == args:
                     print_list.append(str(v))
         else:
-            for k, v in storage._FileStorage__objects.items():
-                print_list.append(str(v))
+            for cls_name in HBNBCommand.classes:
+                objects = storage.all(HBNBCommand.classes[cls_name])
+                for k, v in objects.items():
+                    print_list.append(str(v))
 
         print(print_list)
 
@@ -272,7 +325,7 @@ class HBNBCommand(cmd.Cmd):
                 args.append(v)
         else:  # isolate args
             args = args[2]
-            if args and args[0] is '\"':  # check for quoted arg
+            if args and args[0] == '\"':  # check for quoted arg
                 second_quote = args.find('\"', 1)
                 att_name = args[1:second_quote]
                 args = args[second_quote + 1:]
@@ -280,10 +333,10 @@ class HBNBCommand(cmd.Cmd):
             args = args.partition(' ')
 
             # if att_name was not quoted arg
-            if not att_name and args[0] is not ' ':
+            if not att_name and args[0] != ' ':
                 att_name = args[0]
             # check for quoted val arg
-            if args[2] and args[2][0] is '\"':
+            if args[2] and args[2][0] == '\"':
                 att_val = args[2][1:args[2].find('\"', 1)]
 
             # if att_val was not quoted arg
@@ -319,6 +372,7 @@ class HBNBCommand(cmd.Cmd):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
