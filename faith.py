@@ -1,26 +1,19 @@
 #!/usr/bin/python3
 """ Console Module """
 import cmd
-from datetime import datetime
-import uuid
-from os import getenv
-import shlex
 import sys
-<<<<<<< HEAD
-import ast
-=======
-from models.engine.db_storage import DBStorage
-from models.engine.file_storage import FileStorage
->>>>>>> a8c1ce2eabf9cffb04263a871c284d295a334a48
 from models.base_model import BaseModel
-from models import storage
-# from models.__init__ import storage
+from models.__init__ import storage
 from models.user import User
 from models.place import Place
 from models.state import State
 from models.city import City
 from models.amenity import Amenity
 from models.review import Review
+from datetime import datetime
+from os import getenv
+import uuid
+import re
 
 
 class HBNBCommand(cmd.Cmd):
@@ -121,11 +114,10 @@ class HBNBCommand(cmd.Cmd):
         print("Exits the program without formatting\n")
 
     def emptyline(self):
-        """ Overrides the emptyline method of CMD """
+        """Overrides the default behavior of emptyline in Cmd."""
         pass
 
     def do_create(self, args):
-<<<<<<< HEAD
         """Create an object of any class"""
         ignored_attrs = ('id', 'created_at', 'updated_at', '__class__')
         class_nm = ''
@@ -169,12 +161,9 @@ class HBNBCommand(cmd.Cmd):
                     print(new_instance.id)
 
                 else:
-                     new_instance = HBNBCommand.classes[class_name]()
-                     for key, value in obj_kwargs.items():
-                         if key not in ignored_attrs:
-                             setattr(new_instance, key, value)
-                     new_instance.save()
-                     print(new_instance.id)
+                    new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
+                    new_instance.save()
+                    print(new_instance.id)
 
 def convert_value(self, value, type_key):
     """Convert value based on the specified type."""
@@ -186,81 +175,7 @@ def convert_value(self, value, type_key):
         return int(value)
     else:
         return value
-=======
-        """ Create an object of any class"""
-        if not args:
-            print("** class name missing **")
-            return
-        arguments = shlex.split(args)
-        class_name = arguments[0]
->>>>>>> a8c1ce2eabf9cffb04263a871c284d295a334a48
 
-        try:
-            if class_name not in HBNBCommand.classes:
-                print("** class doesn't exist **")
-                return
-
-            pairs = arguments[1:]
-            #new_instance = HBNBCommand.classes[class_name]()
-            obj_kwargs = {}
-            for pair in pairs:
-                key, value = pair.split("=")
-                value = value.replace('_', ' ')
-
-                try:
-                    obj_kwargs[key] = eval(value)
-                    #setattr(new_instance, key, eval(value))
-                except (SyntaxError, NameError):
-                    obj_kwargs[key] = value
-                    #setattr(new_instance, key, value)
-
-            if getenv('HBNB_TYPE_STORAGE') == 'db':
-                if 'id' not in obj_kwargs:
-                    obj_kwargs['id'] = str(uuid.uuid4())
-                if 'created_at' not in obj_kwargs:
-                    obj_kwargs['created_at'] = str(datetime.now().isoformat())
-                if 'updated_at' not in obj_kwargs:
-                    obj_kwargs['updated_at'] = str(datetime.now().isoformat())
-
-                new_instance = HBNBCommand.classes[class_name](**obj_kwargs)
-                new_instance.save()
-                print(new_instance.id)
-            else:
-                new_instance = HBNBCommand.classes[class_name]()
-                for key, value in obj_kwargs.items():
-                    setattr(new_instance, key, value)
-                new_instance.save()
-                print(new_instance.id)
-
-        except Exception as e:
-            print(f"Error: {e}")
-
-        '''
-        try:
-            if class_name not in HBNBCommand.classes:
-                print("** class doesn't exist **")
-                return
-            new_instance = self.classes[class_name]()
-            for i in arguments[1:]:
-                key, value = shlex.split(i, posix=False).split("=")
-        
-                #if not hasattr(new_instance, key):
-                   # print ("** attribute does not exist **")
-                   # return
-                #elif hasattr(new_instance, key):
-                    #if value[0] == '"' and value[-1] == '"':
-                     #   value = value[1:-1].replace('_', ' ')
-                    #if '.' in value:
-                     #   value = float(value)
-                    #elif value.isdigit():
-                     #   value = int(value) 
-                setattr(new_instance, key, value)
-        except Exception:
-            pass
-        new_instance.save()
-        print(new_instance.id)
-        storage.save()
-        '''
     def help_create(self):
         """ Help information for the create method """
         print("Creates a class of any type")
@@ -290,7 +205,7 @@ def convert_value(self, value, type_key):
 
         key = c_name + "." + c_id
         try:
-            print(storage._FileStorage__objects[key])
+            print(storage.all()[key])
         except KeyError:
             print("** no instance found **")
 
@@ -334,8 +249,6 @@ def convert_value(self, value, type_key):
 
     def do_all(self, args):
         """ Shows all objects, or all objects of a class"""
-        from models.engine.db_storage import DBStorage
-        from models.engine.file_storage import FileStorage
         print_list = []
 
         if args:
@@ -350,7 +263,7 @@ def convert_value(self, value, type_key):
         else:
             for cls_name in HBNBCommand.classes:
                 objects = storage.all(HBNBCommand.classes[cls_name])
-                for k,v in objects.items():
+                for k, v in objects.items():
                     print_list.append(str(v))
 
         print(print_list)
@@ -459,6 +372,7 @@ def convert_value(self, value, type_key):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
