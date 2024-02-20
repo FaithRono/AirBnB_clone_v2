@@ -1,8 +1,32 @@
 #!/usr/bin/python3
 """ State Module for HBNB project """
 from models.base_model import BaseModel
+from sqlalchemy import Column, String
+from sqlalchemy.orm import relationship
+from os import getenv
+import uuid
 
 
 class State(BaseModel):
     """ State class """
-    name = ""
+    __tablename__ = "states"
+    
+    if getenv("HBNB_TYPE_STORAGE") == "db":
+        name = Column(String(128), nullable=False)
+        cities = relationship("City", cascade="all, delete-orphan",
+                            backref="state")
+    else:
+        name = ""
+
+    @property
+    def cities(self):
+        """return cities with concurrent ids as the state ids"""
+        if getenv("HBNB_TYPE_STORAGE") != "db":
+            import models
+            from models.city import City
+            list_city = []
+
+            cities = models.storage.all(City)
+            for city in cities.values():
+                list_city.append(city)
+            return list_city

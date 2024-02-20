@@ -3,15 +3,13 @@
 import cmd
 from datetime import datetime
 import uuid
+import re
 from os import getenv
 import shlex
 import sys
-<<<<<<< HEAD
 import ast
-=======
 from models.engine.db_storage import DBStorage
 from models.engine.file_storage import FileStorage
->>>>>>> a8c1ce2eabf9cffb04263a871c284d295a334a48
 from models.base_model import BaseModel
 from models import storage
 # from models.__init__ import storage
@@ -96,6 +94,10 @@ class HBNBCommand(cmd.Cmd):
             pass
         finally:
             return line
+    
+    def __init__(self):
+        super().__init__()
+        self.storage = storage
 
     def postcmd(self, stop, line):
         """Prints if isatty is false"""
@@ -124,20 +126,30 @@ class HBNBCommand(cmd.Cmd):
         """ Overrides the emptyline method of CMD """
         pass
 
+    def convert_value(self, value, type_key):
+        """Convert value based on the specified type."""
+        if type_key == 't_str':
+            return value[1:-1].replace('_', ' ')
+        elif type_key == 't_float':
+            return float(value)
+        elif type_key == 't_int':
+            return int(value)
+        else:
+            return value
+
     def do_create(self, args):
-<<<<<<< HEAD
         """Create an object of any class"""
         ignored_attrs = ('id', 'created_at', 'updated_at', '__class__')
         class_nm = ''
         name_pattern = r'(?P<name>(?:[a-zA-Z]|_)(?:[a-zA-Z]|\d|_)*)'
         class_match = re.match(name_pattern, args)
-        obj.kwargs = {}
+        obj_kwargs = {}
 
         if class_match != None:
-            class_nm = class_match.grp('name')
+            class_name = class_match.group('name')
             prms_str = args[len(class_name):].strip()
-            prms = prms_strs.split(' ')
-            prms_pattern = r'{}=({}|{}|{})'.format(nm_pattern,
+            prms = prms_str.split(' ')
+            prms_pattern = r'{}=({}|{}|{})'.format(name_pattern,
                 r'(?P<t_str>"([^"]|\")*")',
                 r'(?P<t_float>[-+]?\d+\.\d+)',
                 r'(?P<t_int>[-+]?\d+)'
@@ -147,7 +159,7 @@ class HBNBCommand(cmd.Cmd):
                 prm_match = re.fullmatch(prms_pattern, prm)
                 if prm_match != None:
                     key_name = prm_match.group('name')
-                    type_key = next((k, v) for k, v in prm_match.groupdict().items() if v is not None)
+                    type_key = next((k, v) for k, v in prm_match.groupdict().items() if v is not None)[0]
                     value = prm_match.group(type_key)
                     obj_kwargs[key_name] = self.convert_value(value, type_key)
 
@@ -176,24 +188,12 @@ class HBNBCommand(cmd.Cmd):
                      new_instance.save()
                      print(new_instance.id)
 
-def convert_value(self, value, type_key):
-    """Convert value based on the specified type."""
-    if type_key == 't_str':
-        return value[1:-1].replace('_', ' ')
-    elif type_key == 't_float':
-        return float(value)
-    elif type_key == 't_int':
-        return int(value)
-    else:
-        return value
-=======
         """ Create an object of any class"""
         if not args:
             print("** class name missing **")
             return
         arguments = shlex.split(args)
         class_name = arguments[0]
->>>>>>> a8c1ce2eabf9cffb04263a871c284d295a334a48
 
         try:
             if class_name not in HBNBCommand.classes:
@@ -343,13 +343,13 @@ def convert_value(self, value, type_key):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            objects = storage.all(HBNBCommand.classes[args])
+            objects = self.storage.all(HBNBCommand.classes[args])
             for k, v in objects.items():
                 if k.split('.')[0] == args:
                     print_list.append(str(v))
         else:
             for cls_name in HBNBCommand.classes:
-                objects = storage.all(HBNBCommand.classes[cls_name])
+                objects = self.storage.all(HBNBCommand.classes[cls_name])
                 for k,v in objects.items():
                     print_list.append(str(v))
 
