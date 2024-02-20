@@ -50,7 +50,7 @@ class DBStorage():
         query_classes = [cls] if cls else mapped_classes.values()
 
         for query_cls in query_classes:
-            for obj in self.__session.query(query_cls):
+            for obj in self.__session.query(query_cls).all():
                 key = f"{obj.__class__.__name__}.{obj.id}"
                 objects[key] = obj
 
