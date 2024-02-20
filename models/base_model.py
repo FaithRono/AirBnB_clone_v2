@@ -64,11 +64,16 @@ class BaseModel:
         dictionary.update(self.__dict__)
         dictionary.pop('_sa_instance_state', None)
         dictionary.update({'__class__':
-                          (str(type(self)).split('.')[-1]).split('\'')[0]})
-        dictionary['created_at'] = self.created_at.isoformat()
-        dictionary['updated_at'] = self.updated_at.isoformat()
+                       (str(type(self)).split('.')[-1]).split('\'')[0]})
+
+        if isinstance(self.created_at, datetime):
+            dictionary['created_at'] = self.created_at.isoformat()
+
+        if isinstance(self.updated_at, datetime):
+            dictionary['updated_at'] = self.updated_at.isoformat()
 
         return dictionary
+
 
     def delete(self):
         """Delete current instance from storage by calling

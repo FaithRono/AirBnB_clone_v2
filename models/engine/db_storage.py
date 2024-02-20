@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from models.base_model import BaseModel
 from models.user import User
+from models.state import State
 from models.place import Place
 from models.city import City
 from models.amenity import Amenity
@@ -27,12 +28,15 @@ class DBStorage():
         try:
             from models.base_model import Base
             self.__engine = create_engine('mysql+mysqldb://{}:{}@{}/{}'
-                                          .format(getenv('HBNB_MYSQL_USER'),
-                                                  getenv('HBNB_MYSQL_PWD'),
-                                                  getenv('HBNB_MYSQL_HOST'),
-                                                  getenv('HBNB_MYSQL_DB')),
-                                          pool_pre_ping=True)
+                                        .format(getenv('HBNB_MYSQL_USER'),
+                                                getenv('HBNB_MYSQL_PWD'),
+                                                getenv('HBNB_MYSQL_HOST'),
+                                                getenv('HBNB_MYSQL_DB')),
+                                         pool_pre_ping=True)
             Base.metadata.create_all(self.__engine)
+
+            session_factory = sessionmaker(bind=self.__engine)
+            self.__session = scoped_session(session_factory)
 
         except Exception as e:
             print(f"Error connecting to the database: {e}")
