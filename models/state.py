@@ -2,33 +2,28 @@
 """ State Module for HBNB project """
 from models.base_model import BaseModel, Base
 from sqlalchemy import Column, String
-from sqlalchemy.orm import relationship
 from os import getenv
-import uuid
+from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey
+from models.city import City
 
 
 class State(BaseModel, Base):
-    """ State class """
-    __tablename__ = "states"
-    
-    if getenv("HBNB_TYPE_STORAGE") == "db":
-        name = Column(String(128), nullable=False)
-        id = Column(String(60), primary_key=True, nullable=False)
-        cities = relationship("City", cascade="all, delete-orphan",
-                            backref="state")
-    else:
-        name = ""
+    """State class"""
+    __tablename__ = 'states'
 
-    @property
-    def cities(self):
-        """return cities with concurrent ids as the state ids"""
-        if getenv("HBNB_TYPE_STORAGE") != "db":
-            import models
-            from models.city import City
-            list_city = []
+    id = Column(String(60), primary_key=True, nullable=False)
+    name = Column(String(128), nullable=False)
 
-            cities = models.storage.all(City)
-            for city in cities.values():
+    if getenv("HBNB_TYPE_STORAGE") != "db":
+        @property
+        def cities(self):
+            """getter attribute in case it gets called"""
+            from models import storage
+            cities_list = []
+            for city in storage.all(City).values():
                 if city.state_id == self.id:
-                    list_city.append(city)
-            return list_city
+                    cities_list.append(city)
+            return cities_list
+    else:
+        cities = relationship('City', backref='state', cascade='all, delete-orphan')

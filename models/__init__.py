@@ -13,6 +13,7 @@ else:
     storage = FileStorage()
     storage.reload()
 
+if __name__ == "__main__":
     from .state import State
     from .city import City
     from .place import Place
