@@ -2,7 +2,7 @@
 """This module defines a base class for all models in our hbnb clone"""
 import uuid
 from datetime import datetime
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, String, DateTime
 from os import getenv
 
@@ -13,9 +13,11 @@ else:
     Base = object
 
 
-class BaseModel:
+class BaseModel(Base):
     """A base class for all hbnb models"""
     if getenv("HBNB_TYPE_STORAGE") == 'db':
+        __abstract__= True
+
         id = Column(String(60), nullable=False, primary_key=True)
         created_at = Column(DateTime,
                             nullable=False,
@@ -65,7 +67,6 @@ class BaseModel:
         dictionary.pop('_sa_instance_state', None)
         dictionary.update({'__class__':
                        (str(type(self)).split('.')[-1]).split('\'')[0]})
-
         if isinstance(self.created_at, datetime):
             dictionary['created_at'] = self.created_at.isoformat()
 
